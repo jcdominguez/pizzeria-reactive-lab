@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#fff8ee">
+    <title>La Pizzeria — commande et cuisine</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#accueil" aria-label="La Pizzeria, accueil">
+        <span class="brand-mark" aria-hidden="true">✦</span>
+        <span>La Pizzeria</span>
+      </a>
+      <span class="open-status"><span class="status-dot"></span> Ouvert ce soir</span>
+    </header>
+
+    <main id="accueil">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Le four est chaud</p>
+          <h1>Une bonne soirée<br>commence par une pizza.</h1>
+          <p class="hero-copy">Bienvenue chez La Pizzeria. Choisissez votre préférée, la cuisine s’occupe du reste.</p>
+          <a class="button button-dark" href="#menu">Voir le menu <span aria-hidden="true">↓</span></a>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <div class="sun"></div>
+          <div class="pizza pizza-large"><span class="crust"></span><span class="topping t1"></span><span class="topping t2"></span><span class="topping t3"></span><span class="topping t4"></span><span class="topping t5"></span><span class="basil b1">✦</span><span class="basil b2">✦</span></div>
+          <span class="art-note">faite avec amour<br>et beaucoup de fromage</span>
+        </div>
+      </section>
+
+      <section id="menu" class="menu-section">
+        <div class="section-heading">
+          <div><p class="eyebrow">À la carte</p><h2>Nos incontournables</h2></div>
+          <span class="menu-count">3 recettes · pâte maison</span>
+        </div>
+        <div id="pizza-menu" class="pizza-grid" aria-live="polite"></div>
+      </section>
+
+      <section class="kitchen-section">
+        <div class="section-heading">
+          <div><p class="eyebrow">Côté cuisine</p><h2>Le passe-plat</h2></div>
+          <span class="queue-count"><span class="status-dot muted"></span> <span id="order-count">0 commande</span></span>
+        </div>
+        <div id="kitchen-board" class="kitchen-board">
+          <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true">🍕</span>
+            <h3>Le calme avant le rush</h3>
+            <p>Aucune commande pour le moment.<br>Les prochaines pizzas apparaîtront ici.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer><span>La Pizzeria</span><span>Bonne humeur servie avec chaque part.</span></footer>
+    <script src="app.js"></script>
+  </body>
+</html>
