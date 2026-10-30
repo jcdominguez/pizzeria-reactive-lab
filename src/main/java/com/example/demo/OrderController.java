@@ -20,9 +20,8 @@ public class OrderController {
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<Commande>> create(@RequestBody Mono<CreateOrderRequest> request) {
-        return request
-                .flatMap(body -> orderService.create(body.pizzaId()))
+    public Mono<ResponseEntity<Commande>> create(@RequestBody CreateOrderRequest request) {
+        return orderService.create(request.pizzaId())
                 .map(order -> ResponseEntity.status(201).body(order));
     }
 }
