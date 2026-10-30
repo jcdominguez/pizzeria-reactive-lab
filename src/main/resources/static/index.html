@@ -56,6 +56,22 @@
           </div>
         </div>
       </section>
+
+      <section class="kitchen-section" id="rush-lab">
+        <div class="section-heading"><div><p class="eyebrow">Expérience</p><h2>Rush et backpressure</h2></div></div>
+        <div class="menu-actions">
+          <label for="rush-rate">Cadence du rush</label>
+          <select id="rush-rate"><option value="1000">1 commande / seconde</option><option value="500">2 commandes / seconde</option><option value="200">5 commandes / seconde</option></select>
+          <button class="button button-dark" id="rush-start" type="button">Démarrer le rush</button>
+          <button class="button button-dark" id="rush-stop" type="button" disabled>Arrêter</button>
+          <p id="rush-status" aria-live="polite">Le rush est arrêté.</p>
+        </div>
+        <div class="menu-actions">
+          <button class="button button-dark" id="backpressure-start" type="button">Lancer l’expérience Reactor</button>
+          <p id="backpressure-status" aria-live="polite">Le consommateur traitera dix éléments un par un.</p>
+        </div>
+        <div id="backpressure-trace" class="kitchen-board" aria-live="polite"></div>
+      </section>
     </main>
 
     <footer><span>La Pizzeria</span><span>Bonne humeur servie avec chaque part.</span></footer>

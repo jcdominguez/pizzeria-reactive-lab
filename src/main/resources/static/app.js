@@ -4,12 +4,64 @@ const kitchen = document.querySelector('#kitchen-board');
 const orderCount = document.querySelector('#order-count');
 const streamButton = document.querySelector('#stream-menu');
 const streamStatus = document.querySelector('#menu-stream-status');
+const rushStart = document.querySelector('#rush-start');
+const rushStop = document.querySelector('#rush-stop');
+const rushRate = document.querySelector('#rush-rate');
+const rushStatus = document.querySelector('#rush-status');
+const backpressureStart = document.querySelector('#backpressure-start');
+const backpressureStatus = document.querySelector('#backpressure-status');
+const backpressureTrace = document.querySelector('#backpressure-trace');
 const orders = [];
 let pizzas = [];
 
 loadMenu();
 loadOrders();
 listenForNewOrders();
+
+let rushTimer;
+let rushSent = 0;
+rushStart.addEventListener('click', () => {
+  rushSent = 0;
+  rushStart.disabled = true;
+  rushStop.disabled = false;
+  rushStatus.textContent = 'Rush en cours…';
+  const sendOrder = async () => {
+    const pizza = pizzas[rushSent % pizzas.length];
+    try {
+      const response = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pizzaId: pizza.id }) });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      rushSent += 1;
+      rushStatus.textContent = `${rushSent} commande${rushSent === 1 ? '' : 's'} envoyée${rushSent === 1 ? '' : 's'}`;
+    } catch (error) {
+      rushStatus.textContent = `Erreur pendant le rush : ${error.message}`;
+    }
+  };
+  sendOrder();
+  rushTimer = setInterval(sendOrder, Number(rushRate.value));
+});
+rushStop.addEventListener('click', () => {
+  clearInterval(rushTimer);
+  rushStart.disabled = false;
+  rushStop.disabled = true;
+  rushStatus.textContent += ' · Rush arrêté.';
+});
+
+backpressureStart.addEventListener('click', async () => {
+  backpressureStart.disabled = true;
+  backpressureStatus.textContent = 'Expérience en cours…';
+  backpressureTrace.replaceChildren();
+  try {
+    const response = await fetch('/api/orders/backpressure-demo', { method: 'POST' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const trace = await response.json();
+    backpressureTrace.innerHTML = `<ol>${trace.map(row => `<li>${row.elapsedMillis} ms · ${row.event}${row.item ? ` · élément ${row.item}` : ''}</li>`).join('')}</ol>`;
+    backpressureStatus.textContent = 'Expérience terminée.';
+  } catch (error) {
+    backpressureStatus.textContent = `Erreur : ${error.message}`;
+  } finally {
+    backpressureStart.disabled = false;
+  }
+});
 
 async function loadMenu() {
   try {

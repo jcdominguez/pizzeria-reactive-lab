@@ -22,9 +22,11 @@ public class OrderController {
     private static final Logger log = LoggerFactory.getLogger(OrderController.class);
 
     private final OrderService orderService;
+    private final BackpressureDemoService backpressureDemoService;
 
-    public OrderController(OrderService orderService) {
+    public OrderController(OrderService orderService, BackpressureDemoService backpressureDemoService) {
         this.orderService = orderService;
+        this.backpressureDemoService = backpressureDemoService;
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
@@ -52,5 +54,10 @@ public class OrderController {
                 })
                 .onErrorMap(PizzaNotFoundException.class,
                         error -> new ResponseStatusException(HttpStatus.NOT_FOUND, error.getMessage()));
+    }
+
+    @PostMapping(path = "/backpressure-demo", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<java.util.List<BackpressureObservation>> runBackpressureDemo() {
+        return backpressureDemoService.run();
     }
 }
