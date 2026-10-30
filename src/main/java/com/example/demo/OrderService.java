@@ -16,7 +16,7 @@ public class OrderService {
     private final CommandeRepository commandeRepository;
     private final DeliveryClient deliveryClient;
     private final Sinks.Many<Commande> nouvellesCommandes =
-            Sinks.many().multicast().onBackpressureBuffer();
+            Sinks.many().multicast().onBackpressureBuffer(256, false);
 
     public OrderService(MenuService menuService, CommandeRepository commandeRepository,
                         DeliveryClient deliveryClient) {
