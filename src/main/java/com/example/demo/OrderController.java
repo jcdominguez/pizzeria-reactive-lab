@@ -2,6 +2,7 @@ package com.example.demo;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.codec.ServerSentEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,6 +30,15 @@ public class OrderController {
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public Flux<Commande> findAll() {
         return orderService.findAll();
+    }
+
+    @GetMapping(path = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<Commande>> stream() {
+        return orderService.nouvellesCommandes()
+                .map(commande -> ServerSentEvent.builder(commande)
+                        .id(commande.id())
+                        .event("order-created")
+                        .build());
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE,

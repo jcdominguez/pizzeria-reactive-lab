@@ -9,6 +9,7 @@ let pizzas = [];
 
 loadMenu();
 loadOrders();
+listenForNewOrders();
 
 async function loadMenu() {
   try {
@@ -29,12 +30,29 @@ async function loadOrders() {
   try {
     const response = await fetch('/api/orders');
     if (!response.ok) throw new Error(`Erreur HTTP ${response.status}`);
-    orders.push(...await response.json());
-    orders.reverse();
+    (await response.json()).forEach(addOrder);
     renderOrders();
   } catch (error) {
     console.error('Impossible de charger les commandes.', error);
   }
+}
+
+function listenForNewOrders() {
+  const source = new EventSource('/api/orders/stream');
+
+  source.addEventListener('order-created', (event) => {
+    addOrder(JSON.parse(event.data));
+    renderOrders();
+  });
+
+  source.onopen = () => console.info('Flux des nouvelles commandes connecté.');
+  source.onerror = () => console.warn('Connexion au flux des commandes interrompue ; le navigateur réessaie automatiquement.');
+}
+
+function addOrder(order) {
+  if (orders.some(existing => existing.id === order.id)) return;
+  orders.push(order);
+  orders.sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt));
 }
 
 function renderMenu() {
@@ -98,9 +116,7 @@ menu.addEventListener('click', async (event) => {
       throw new Error(`Erreur HTTP ${response.status}`);
     }
 
-    const order = await response.json();
-    orders.unshift(order);
-    renderOrders();
+    await response.json();
   } catch (error) {
     console.error('Impossible de créer la commande.', error);
     button.textContent = 'Réessayer';
