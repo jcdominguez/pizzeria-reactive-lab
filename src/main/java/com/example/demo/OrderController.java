@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -30,6 +32,8 @@ public class OrderController {
                 .map(order -> {
                     log.info("Commande n°{} créée pour la pizza {}", order.number(), order.pizza().name());
                     return ResponseEntity.status(201).body(order);
-                });
+                })
+                .onErrorMap(PizzaNotFoundException.class,
+                        error -> new ResponseStatusException(HttpStatus.NOT_FOUND, error.getMessage()));
     }
 }
