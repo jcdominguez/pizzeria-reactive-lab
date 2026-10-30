@@ -1,55 +1,73 @@
 # TP fil rouge : La Pizzeria
 
-Étape 1 : découvrir l’application avant de construire son API.
+## Parcours
 
-## Objectif
+- **Étape facultative — Découvrir la maquette** : consulter la version statique publiée sous le tag `etape-1-v1`. Elle ne demande que Git et un navigateur.
+- **Étape 1 — Lancer la pizzeria avec Spring Boot** : point de départ obligatoire du TP. Le projet Spring Boot sert la même interface depuis son classpath.
 
-Lancer une petite interface qui présente le menu côté client et le passe-plat côté cuisine. Les commandes sont encore gardées uniquement dans la mémoire de la page. Elles disparaissent quand on recharge le navigateur : leur création par une API et leur persistance seront construites dans les étapes suivantes.
+Le projet évoluera ensuite pour que le menu provienne d'une route WebFlux. À cette étape, le menu et les commandes de démonstration restent dans le JavaScript du navigateur : aucune API métier ni base de données n'existe encore.
 
-## Contenu
+## Ce que contient l'étape 1
 
-- `index.html` : les vues client et cuisine, réunies sur une page.
-- `styles.css` : la présentation adaptative de la page.
-- `app.js` : le menu de démonstration et un comportement temporaire de commande en mémoire.
+- `pom.xml` : projet Maven, Spring Boot 4.1.1, Java 25 et le starter WebFlux.
+- `src/main/java/com/example/demo/DemoApplication.java` : point d'entrée qui démarre Spring Boot.
+- `src/main/resources/static/index.html` : interface client et cuisine, servie par Spring Boot.
+- `src/main/resources/static/styles.css` : présentation de la page.
+- `src/main/resources/static/app.js` : menu de démonstration et commandes gardées en mémoire dans la page.
 
-## Démarrer
+Spring Boot sert les ressources placées sous `src/main/resources/static` à partir du classpath ; `index.html` est la page d'accueil. Voir la [documentation officielle sur le contenu statique avec WebFlux](https://docs.spring.io/spring-boot/reference/web/reactive.html#web.reactive.webflux.static-content).
 
-Pour retrouver cette version depuis GitHub, avec Git installé, exécuter les commandes suivantes depuis un dossier de travail. Le dossier `pizzeria-reactive-lab` ne doit pas déjà exister à cet endroit.
+## Récupérer le point de départ
+
+Prérequis : Git, un JDK 25 et Maven. Le dépôt est public ; un compte GitHub n'est pas nécessaire pour le cloner.
+
+Depuis le dossier où tu conserves les projets de formation :
 
 ```bash
-git clone --branch etape-1-v1 https://github.com/jcdominguez/pizzeria-reactive-lab.git pizzeria-reactive-lab
+git clone --branch etape-1-spring-boot https://github.com/jcdominguez/pizzeria-reactive-lab.git pizzeria-lab
 ```
 
 ```bash
-cd pizzeria-reactive-lab
+cd pizzeria-lab
 ```
 
-Le clone du tag affiche un message « detached HEAD » : il désigne la version figée. Créer une branche personnelle pour travailler dessus :
+Crée ta branche de travail à partir de ce point de reprise :
 
 ```bash
-git switch -c travail-etape-1
+git switch -c mon-travail
 ```
 
-Ouvrir `index.html` dans un navigateur récent. Aucun serveur, compte ou logiciel supplémentaire n’est nécessaire.
+## Démarrer l'application
 
-Le tag `etape-1-v1` conserve la version de référence de cette étape ; il ne doit pas être déplacé. La branche `etape-1-decouverte` donne aussi accès à cette étape, tandis que `main` accueillera la suite du TP. Un correctif de référence recevra un nouveau tag.
+Depuis la racine du projet, lance Spring Boot avec Maven :
+
+```bash
+mvn spring-boot:run
+```
+
+Quand le serveur a démarré, ouvre <http://localhost:8080>. Pour arrêter le serveur, reviens au Terminal et appuie sur `Ctrl+C`.
 
 ## Parcours de découverte
 
-1. Repérer le menu et les prix.
-2. Cliquer sur « Ajouter à la commande » pour envoyer une pizza au passe-plat.
-3. Constater que la cuisine voit la commande apparaître avec son numéro et son état « Reçue ».
-4. Recharger la page et constater que les commandes ont disparu.
+1. Avant de lancer l'application, repère `DemoApplication` et le dossier `static`.
+2. Démarre l'application et ouvre l'adresse `http://localhost:8080`.
+3. Repère les trois pizzas et le passe-plat vide.
+4. Ajoute une pizza : une commande de démonstration apparaît dans la vue cuisine.
+5. Recharge la page : les commandes disparaissent, car elles sont conservées uniquement dans la mémoire du navigateur.
+
+## Ce que cette étape permet de comprendre
+
+Spring Boot démarre le serveur WebFlux et rend les fichiers de la page accessibles par HTTP. Le navigateur demande le document HTML, puis ses fichiers CSS et JavaScript ; le serveur les retrouve dans le classpath et les renvoie.
+
+La présence de WebFlux ne signifie pas encore que le menu est une API réactive. À cette étape, le serveur renvoie des fichiers statiques ; le JavaScript contient toujours les pizzas et crée localement les commandes. Les `Mono`, les `Flux` et les routes métier arrivent ensuite.
 
 ## Résultat attendu
 
-Au premier affichage, trois pizzas sont visibles, le compteur indique `0 commande` et le passe-plat affiche « Le calme avant le rush ». Après un clic sur une pizza, le compteur passe à `1 commande` et une carte de commande apparaît côté cuisine.
+L'application démarre sans erreur, la page est accessible à `http://localhost:8080`, et son comportement correspond à la maquette facultative : trois pizzas s'affichent, un clic ajoute une commande à la vue cuisine, et un rechargement vide à nouveau cette vue.
 
-## Limites volontaires de cette étape
+## Limites volontaires
 
-- Les vues client et cuisine sont réunies sur la même page pour faciliter la découverte.
-- Le menu et les commandes sont définis dans le navigateur, pas dans une API ni dans MongoDB.
-- Le bouton ajoute directement une commande de démonstration ; aucune authentification n’est encore nécessaire.
-- Le chargement des polices depuis Google Fonts requiert une connexion Internet ; les polices système assurent une présentation de repli.
-
-À l’étape suivante, le menu sera fourni par une route WebFlux au lieu d’être inscrit dans la page.
+- Les vues client et cuisine partagent une seule page et un seul navigateur.
+- Les données de menu et les commandes vivent dans le JavaScript ; elles ne sont pas stockées dans une API ni dans MongoDB.
+- Aucun compte, rôle ou appel à un service externe n'est encore configuré.
+- Les polices DM Sans et Playfair Display sont chargées depuis Google Fonts ; des polices système prennent le relais hors ligne.
