@@ -141,9 +141,9 @@ function renderOrders() {
     return;
   }
 
-  kitchen.innerHTML = `<div class="order-list">${orders.map(({ id, pizza, status, createdAt }) => `
+  kitchen.innerHTML = `<div class="order-list">${orders.map(({ id, pizza, status, createdAt, estimatedDeliveryMinutes, deliveryMessage }) => `
     <article class="order-card">
-      <div><strong>Commande #${id.slice(0, 8)} · ${pizza.name}</strong><small>Reçue à ${new Date(createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} · ${money.format(pizza.price)}</small></div>
+      <div><strong>Commande #${id.slice(0, 8)} · ${pizza.name}</strong><small>Reçue à ${new Date(createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} · ${money.format(pizza.price)} · ${estimatedDeliveryMinutes ? `Livraison estimée dans ${estimatedDeliveryMinutes} min` : (deliveryMessage || 'Estimation non disponible')}</small></div>
       <span class="order-label">${status === 'RECEIVED' ? 'Reçue' : status}</span>
     </article>`).join('')}</div>`;
 }

@@ -11,9 +11,16 @@ public record Commande(
         String id,
         Pizza pizza,
         String status,
-        Instant createdAt
+        Instant createdAt,
+        Integer estimatedDeliveryMinutes,
+        String deliveryMessage
 ) {
     public static Commande create(Pizza pizza) {
-        return new Commande(UUID.randomUUID().toString(), pizza, "RECEIVED", Instant.now());
+        return new Commande(UUID.randomUUID().toString(), pizza, "RECEIVED", Instant.now(), null, null);
+    }
+
+    public Commande withDeliveryEstimate(DeliveryEstimate estimate) {
+        return new Commande(id, pizza, status, createdAt,
+                estimate.estimatedMinutes(), estimate.message());
     }
 }
