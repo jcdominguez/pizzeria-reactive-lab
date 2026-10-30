@@ -66,16 +66,37 @@ streamButton.addEventListener('click', () => {
   };
 });
 
-menu.addEventListener('click', (event) => {
+menu.addEventListener('click', async (event) => {
   const button = event.target.closest('[data-pizza]');
   if (!button) return;
 
-  const pizza = pizzas.find((item) => item.id === button.dataset.pizza);
-  if (!pizza) return;
+  button.disabled = true;
+  const originalText = button.textContent;
+  button.textContent = 'Envoi…';
 
-  const number = orders.length + 1;
-  orders.unshift({ number, pizza, createdAt: new Date() });
-  renderOrders();
+  try {
+    const response = await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pizzaId: button.dataset.pizza })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erreur HTTP ${response.status}`);
+    }
+
+    const order = await response.json();
+    orders.unshift(order);
+    renderOrders();
+  } catch (error) {
+    console.error('Impossible de créer la commande.', error);
+    button.textContent = 'Réessayer';
+    button.disabled = false;
+    return;
+  }
+
+  button.textContent = originalText;
+  button.disabled = false;
 });
 
 function renderOrders() {
@@ -91,9 +112,9 @@ function renderOrders() {
     return;
   }
 
-  kitchen.innerHTML = `<div class="order-list">${orders.map(({ number, pizza, createdAt }) => `
+  kitchen.innerHTML = `<div class="order-list">${orders.map(({ number, pizza, status, createdAt }) => `
     <article class="order-card">
-      <div><strong>Commande #${number} · ${pizza.name}</strong><small>Reçue à ${createdAt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} · ${money.format(pizza.price)}</small></div>
-      <span class="order-label">Reçue</span>
+      <div><strong>Commande #${number} · ${pizza.name}</strong><small>Reçue à ${new Date(createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} · ${money.format(pizza.price)}</small></div>
+      <span class="order-label">${status === 'RECEIVED' ? 'Reçue' : status}</span>
     </article>`).join('')}</div>`;
 }

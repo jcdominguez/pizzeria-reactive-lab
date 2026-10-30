@@ -2,6 +2,7 @@ package com.example.demo;
 
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 
@@ -14,6 +15,10 @@ public class MenuService {
                 new Pizza("reine", "La Reine du four", "Jambon, champignons, mozzarella", 12.0, "🍄"),
                 new Pizza("flammekueche", "La Flammekueche", "Crème, oignons doux, fromage, lardons", 13.5, "🧅")
         );
+    }
+
+    public Mono<Pizza> findById(String id) {
+        return findAll().filter(pizza -> pizza.id().equals(id)).next();
     }
 
     public Flux<Pizza> streamAll() {
