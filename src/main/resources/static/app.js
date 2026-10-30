@@ -1,25 +1,39 @@
-const pizzas = [
-  { id: 'marguerite', name: 'La Marguerite', description: 'Tomate, mozzarella fondante, basilic frais', price: 10.5, emoji: '🍅' },
-  { id: 'reine', name: 'La Reine du four', description: 'Jambon, champignons, mozzarella', price: 12, emoji: '🍄' },
-  { id: 'flammekueche', name: 'La Flammekueche', description: 'Crème, oignons doux, fromage, lardons', price: 13.5, emoji: '🧅' },
-];
-
 const money = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' });
-
-document.querySelector('#pizza-menu').innerHTML = pizzas.map((pizza) => `
-  <article class="pizza-card">
-    <div class="pizza-card-top"><span class="pizza-emoji" aria-hidden="true">${pizza.emoji}</span><span class="pizza-price">${money.format(pizza.price)}</span></div>
-    <h3>${pizza.name}</h3>
-    <p>${pizza.description}</p>
-    <button class="order-button" data-pizza="${pizza.id}">＋ Ajouter à la commande</button>
-  </article>
-`).join('');
-
+const menu = document.querySelector('#pizza-menu');
 const kitchen = document.querySelector('#kitchen-board');
 const orderCount = document.querySelector('#order-count');
 const orders = [];
+let pizzas = [];
 
-document.querySelector('#pizza-menu').addEventListener('click', (event) => {
+loadMenu();
+
+async function loadMenu() {
+  try {
+    const response = await fetch('/api/pizzas');
+    if (!response.ok) {
+      throw new Error(`Erreur HTTP ${response.status}`);
+    }
+
+    pizzas = await response.json();
+    renderMenu();
+  } catch (error) {
+    menu.innerHTML = '<p role="alert">Le menu est indisponible. Vérifie que l’application est démarrée, puis recharge la page.</p>';
+    console.error('Impossible de charger le menu des pizzas.', error);
+  }
+}
+
+function renderMenu() {
+  menu.innerHTML = pizzas.map((pizza) => `
+    <article class="pizza-card">
+      <div class="pizza-card-top"><span class="pizza-emoji" aria-hidden="true">${pizza.emoji}</span><span class="pizza-price">${money.format(pizza.price)}</span></div>
+      <h3>${pizza.name}</h3>
+      <p>${pizza.description}</p>
+      <button class="order-button" data-pizza="${pizza.id}">＋ Ajouter à la commande</button>
+    </article>
+  `).join('');
+}
+
+menu.addEventListener('click', (event) => {
   const button = event.target.closest('[data-pizza]');
   if (!button) return;
 
