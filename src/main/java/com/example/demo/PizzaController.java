@@ -20,4 +20,9 @@ public class PizzaController {
     public Flux<Pizza> findAll() {
         return menuService.findAll();
     }
+
+    @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<Pizza> streamAll() {
+        return menuService.streamAll();
+    }
 }

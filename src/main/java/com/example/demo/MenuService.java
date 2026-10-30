@@ -3,6 +3,8 @@ package com.example.demo;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
+import java.time.Duration;
+
 @Service
 public class MenuService {
 
@@ -12,5 +14,9 @@ public class MenuService {
                 new Pizza("reine", "La Reine du four", "Jambon, champignons, mozzarella", 12.0, "🍄"),
                 new Pizza("flammekueche", "La Flammekueche", "Crème, oignons doux, fromage, lardons", 13.5, "🧅")
         );
+    }
+
+    public Flux<Pizza> streamAll() {
+        return findAll().delayElements(Duration.ofSeconds(1));
     }
 }

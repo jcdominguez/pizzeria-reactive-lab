@@ -2,6 +2,8 @@ const money = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR
 const menu = document.querySelector('#pizza-menu');
 const kitchen = document.querySelector('#kitchen-board');
 const orderCount = document.querySelector('#order-count');
+const streamButton = document.querySelector('#stream-menu');
+const streamStatus = document.querySelector('#menu-stream-status');
 const orders = [];
 let pizzas = [];
 
@@ -23,15 +25,46 @@ async function loadMenu() {
 }
 
 function renderMenu() {
-  menu.innerHTML = pizzas.map((pizza) => `
+  menu.innerHTML = pizzas.map(renderPizza).join('');
+}
+
+function renderPizza(pizza) {
+  return `
     <article class="pizza-card">
       <div class="pizza-card-top"><span class="pizza-emoji" aria-hidden="true">${pizza.emoji}</span><span class="pizza-price">${money.format(pizza.price)}</span></div>
       <h3>${pizza.name}</h3>
       <p>${pizza.description}</p>
       <button class="order-button" data-pizza="${pizza.id}">＋ Ajouter à la commande</button>
-    </article>
-  `).join('');
+    </article>`;
 }
+
+streamButton.addEventListener('click', () => {
+  menu.replaceChildren();
+  streamButton.disabled = true;
+  streamStatus.textContent = 'Les pizzas arrivent…';
+
+  const source = new EventSource('/api/pizzas/stream');
+  let received = 0;
+
+  source.onmessage = (event) => {
+    const pizza = JSON.parse(event.data);
+    menu.insertAdjacentHTML('beforeend', renderPizza(pizza));
+    received += 1;
+    streamStatus.textContent = `${received} pizza${received === 1 ? '' : 's'} reçue${received === 1 ? '' : 's'}`;
+
+    if (received === pizzas.length) {
+      source.close();
+      streamButton.disabled = false;
+      streamStatus.textContent = 'Les trois pizzas sont arrivées.';
+    }
+  };
+
+  source.onerror = () => {
+    source.close();
+    streamButton.disabled = false;
+    streamStatus.textContent = 'Le flux SSE est interrompu. Recharge la page pour réessayer.';
+  };
+});
 
 menu.addEventListener('click', (event) => {
   const button = event.target.closest('[data-pizza]');
