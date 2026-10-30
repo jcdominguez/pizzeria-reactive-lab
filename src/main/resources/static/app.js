@@ -11,6 +11,7 @@ const rushStatus = document.querySelector('#rush-status');
 const backpressureStart = document.querySelector('#backpressure-start');
 const backpressureStatus = document.querySelector('#backpressure-status');
 const backpressureTrace = document.querySelector('#backpressure-trace');
+const fastSourceStart = document.querySelector('#backpressure-fast-start');
 const orders = [];
 let pizzas = [];
 
@@ -60,6 +61,23 @@ backpressureStart.addEventListener('click', async () => {
     backpressureStatus.textContent = `Erreur : ${error.message}`;
   } finally {
     backpressureStart.disabled = false;
+  }
+});
+
+fastSourceStart.addEventListener('click', async () => {
+  fastSourceStart.disabled = true;
+  backpressureStatus.textContent = 'Source rapide en cours…';
+  backpressureTrace.replaceChildren();
+  try {
+    const response = await fetch('/api/orders/backpressure-demo/fast-source', { method: 'POST' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const trace = await response.json();
+    backpressureTrace.innerHTML = `<ol>${trace.map(row => `<li>${row.elapsedMillis} ms · ${row.event}${row.item ? ` · élément ${row.item}` : ''}</li>`).join('')}</ol>`;
+    backpressureStatus.textContent = trace.at(-1)?.event ?? 'Expérience terminée.';
+  } catch (error) {
+    backpressureStatus.textContent = `Erreur : ${error.message}`;
+  } finally {
+    fastSourceStart.disabled = false;
   }
 });
 

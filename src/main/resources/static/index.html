@@ -69,6 +69,8 @@
         <div class="menu-actions">
           <button class="button button-dark" id="backpressure-start" type="button">Lancer l’expérience Reactor</button>
           <p id="backpressure-status" aria-live="polite">Le consommateur traitera dix éléments un par un.</p>
+          <button class="button button-dark" id="backpressure-fast-start" type="button">Comparer avec une source rapide et ses pertes</button>
+          <p>Cette source produit 10 éléments par seconde ; le consommateur en traite environ 3. Les éléments abandonnés et le bilan s’affichent dans la trace.</p>
         </div>
         <div id="backpressure-trace" class="kitchen-board" aria-live="polite"></div>
       </section>

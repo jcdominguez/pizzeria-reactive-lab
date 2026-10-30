@@ -60,4 +60,9 @@ public class OrderController {
     public Mono<java.util.List<BackpressureObservation>> runBackpressureDemo() {
         return backpressureDemoService.run();
     }
+
+    @PostMapping(path = "/backpressure-demo/fast-source", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<java.util.List<BackpressureObservation>> runFastSourceDemo() {
+        return backpressureDemoService.runFastSource();
+    }
 }
