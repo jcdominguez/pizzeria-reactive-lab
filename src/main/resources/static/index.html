@@ -58,21 +58,50 @@
       </section>
 
       <section class="kitchen-section" id="rush-lab">
-        <div class="section-heading"><div><p class="eyebrow">Expérience</p><h2>Rush et backpressure</h2></div></div>
-        <div class="menu-actions">
+        <div class="section-heading"><div><p class="eyebrow">Expérience 1</p><h2>Rush HTTP : la charge et ses effets</h2></div></div>
+        <div class="lab-controls">
           <label for="rush-rate">Cadence du rush</label>
           <select id="rush-rate"><option value="1000">1 commande / seconde</option><option value="500">2 commandes / seconde</option><option value="200">5 commandes / seconde</option></select>
           <button class="button button-dark" id="rush-start" type="button">Démarrer le rush</button>
-          <button class="button button-dark" id="rush-stop" type="button" disabled>Arrêter</button>
-          <p id="rush-status" aria-live="polite">Le rush est arrêté.</p>
+          <button class="button button-dark" id="rush-stop" type="button" disabled>Arrêter les envois</button>
         </div>
-        <div class="menu-actions">
+        <p id="rush-status" class="lab-status" aria-live="polite">Le rush est arrêté.</p>
+        <dl class="lab-stats">
+          <div><dt>Envoyées</dt><dd id="rush-sent">0</dd></div>
+          <div><dt>En cours, sans réponse</dt><dd id="rush-pending">0</dd></div>
+          <div><dt>Terminées avec estimation</dt><dd id="rush-ok">0</dd></div>
+          <div><dt>Terminées avec repli</dt><dd id="rush-fallback">0</dd></div>
+          <div><dt>Erreurs</dt><dd id="rush-errors">0</dd></div>
+          <div><dt>Reçues par SSE</dt><dd id="rush-sse">0</dd></div>
+          <div><dt>Durée médiane</dt><dd id="rush-median">–</dd></div>
+          <div><dt>Dernière durée</dt><dd id="rush-last">–</dd></div>
+          <div><dt>Durée maximale</dt><dd id="rush-max">–</dd></div>
+        </dl>
+        <p id="rush-alert" class="lab-alert" role="status" hidden></p>
+        <div class="lab-explain">
+          <p><strong>Ce que montre le rush.</strong> Chaque envoi est un vrai <code>POST /api/orders</code> : appel du service Livraison avec WebClient, enregistrement dans MongoDB, diffusion par SSE. La durée va de l’envoi par le navigateur à la réponse de Pizzeria. Si la cadence dépasse ce que la chaîne sait traiter, les réponses s’allongent, puis les commandes passent en repli.</p>
+          <p><strong>Ce qu’il ne montre pas.</strong> Le navigateur ne reçoit aucune demande Reactive Streams : il envoie à sa cadence, quoi qu’il arrive. Ni le rush ni SSE ne sont une démonstration de backpressure. C’est l’objet de l’expérience 2.</p>
+        </div>
+      </section>
+
+      <section class="kitchen-section" id="reactor-lab">
+        <div class="section-heading"><div><p class="eyebrow">Expérience 2</p><h2>Reactor isolé : demande et abandon</h2></div></div>
+        <div class="lab-controls">
           <button class="button button-dark" id="backpressure-start" type="button">Lancer l’expérience Reactor</button>
-          <p id="backpressure-status" aria-live="polite">Le consommateur traitera dix éléments un par un.</p>
           <button class="button button-dark" id="backpressure-fast-start" type="button">Comparer avec une source rapide et ses pertes</button>
-          <p>Cette source produit 10 éléments par seconde ; le consommateur en traite environ 3. Les éléments abandonnés et le bilan s’affichent dans la trace.</p>
         </div>
+        <p id="backpressure-status" class="lab-status" aria-live="polite">Source contrôlée : dix éléments traités un par un. Source rapide : 10 éléments par seconde pour un consommateur qui en traite environ 3.</p>
+        <dl class="lab-stats">
+          <div><dt>Produits</dt><dd id="bp-produced">–</dd></div>
+          <div><dt>Traités</dt><dd id="bp-processed">–</dd></div>
+          <div><dt>Abandonnés</dt><dd id="bp-dropped">–</dd></div>
+        </dl>
+        <p id="bp-check" class="lab-status" aria-live="polite"></p>
         <div id="backpressure-trace" class="kitchen-board" aria-live="polite"></div>
+        <div class="lab-explain">
+          <p><strong>Ce que montre l’expérience.</strong> Avec la source contrôlée, le consommateur demande un élément, le traite, puis demande le suivant : la source attend la demande, rien n’est perdu. Avec la source rapide, les éléments arrivent sans demande disponible ; <code>onBackpressureDrop</code> les abandonne, et le bilan vérifie que produits = traités + abandonnés.</p>
+          <p><strong>Ce qu’elle ne montre pas.</strong> Ces éléments sont des données de démonstration produites dans Pizzeria : ce ne sont pas des commandes, ils ne passent ni par MongoDB ni par SSE.</p>
+        </div>
       </section>
     </main>
 

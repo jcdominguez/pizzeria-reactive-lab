@@ -9,14 +9,19 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.BaseSubscriber;
 import org.reactivestreams.Subscription;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 public class BackpressureDemoService {
 
-    public Mono<List<BackpressureObservation>> run() {
+    public Mono<BackpressureReport> run() {
         List<BackpressureObservation> trace = new CopyOnWriteArrayList<>();
         AtomicLong started = new AtomicLong(System.nanoTime());
+        AtomicInteger produced = new AtomicInteger();
+        AtomicInteger processed = new AtomicInteger();
+        AtomicBoolean processing = new AtomicBoolean();
+        AtomicBoolean sourceCompleted = new AtomicBoolean();
         return Mono.create(sink -> {
             BaseSubscriber<Integer> subscriber = new BaseSubscriber<>() {
                 @Override
@@ -28,8 +33,16 @@ public class BackpressureDemoService {
                 @Override
                 protected void hookOnNext(Integer item) {
                     trace.add(new BackpressureObservation(item, "Élément reçu, traitement en cours", elapsed(started)));
+                    processing.set(true);
                     Mono.delay(Duration.ofMillis(350)).subscribe(ignored -> {
+                        processed.incrementAndGet();
                         trace.add(new BackpressureObservation(item, "Traitement terminé", elapsed(started)));
+                        processing.set(false);
+                        // La source peut signaler sa fin pendant le traitement du dernier élément.
+                        if (sourceCompleted.get()) {
+                            report();
+                            return;
+                        }
                         trace.add(new BackpressureObservation(0, "Consommateur demande l’élément suivant", elapsed(started)));
                         request(1);
                     }, sink::error);
@@ -37,7 +50,15 @@ public class BackpressureDemoService {
 
                 @Override
                 protected void hookOnComplete() {
-                    sink.success(List.copyOf(trace));
+                    trace.add(new BackpressureObservation(0, "Source terminée", elapsed(started)));
+                    sourceCompleted.set(true);
+                    if (!processing.get()) {
+                        report();
+                    }
+                }
+
+                private void report() {
+                    sink.success(new BackpressureReport(List.copyOf(trace), produced.get(), processed.get(), 0));
                 }
 
                 @Override
@@ -48,11 +69,12 @@ public class BackpressureDemoService {
             sink.onCancel(subscriber::cancel);
             Flux.range(1, 10).doOnRequest(n -> trace.add(
                     new BackpressureObservation(0, "Source reçoit une demande de " + n, elapsed(started))))
+                    .doOnNext(item -> produced.incrementAndGet())
                     .subscribe(subscriber);
         });
     }
 
-    public Mono<List<BackpressureObservation>> runFastSource() {
+    public Mono<BackpressureReport> runFastSource() {
         List<BackpressureObservation> trace = new CopyOnWriteArrayList<>();
         AtomicLong started = new AtomicLong(System.nanoTime());
         AtomicInteger produced = new AtomicInteger();
@@ -74,7 +96,7 @@ public class BackpressureDemoService {
                 .then(Mono.fromSupplier(() -> {
                     trace.add(new BackpressureObservation(0, "BILAN : produits=" + produced.get()
                             + ", traités=" + processed.get() + ", abandonnés=" + dropped.get(), elapsed(started)));
-                    return List.copyOf(trace);
+                    return new BackpressureReport(List.copyOf(trace), produced.get(), processed.get(), dropped.get());
                 }));
     }
 

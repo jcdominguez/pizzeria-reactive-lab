@@ -57,12 +57,12 @@ public class OrderController {
     }
 
     @PostMapping(path = "/backpressure-demo", produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<java.util.List<BackpressureObservation>> runBackpressureDemo() {
+    public Mono<BackpressureReport> runBackpressureDemo() {
         return backpressureDemoService.run();
     }
 
     @PostMapping(path = "/backpressure-demo/fast-source", produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<java.util.List<BackpressureObservation>> runFastSourceDemo() {
+    public Mono<BackpressureReport> runFastSourceDemo() {
         return backpressureDemoService.runFastSource();
     }
 }

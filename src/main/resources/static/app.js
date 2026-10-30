@@ -19,67 +19,152 @@ loadMenu();
 loadOrders();
 listenForNewOrders();
 
-let rushTimer;
-let rushSent = 0;
+// Expérience 1 : rush HTTP. Chaque envoi est un vrai POST /api/orders, mesuré de l'envoi à la réponse.
+const rush = { timer: null, running: false, sent: 0, pending: 0, ok: 0, fallback: 0, errors: 0, durations: [], orderIds: new Set(), sseIds: new Set() };
+const rushFields = Object.fromEntries(['sent', 'pending', 'ok', 'fallback', 'errors', 'sse', 'median', 'last', 'max']
+  .map(name => [name, document.querySelector(`#rush-${name}`)]));
+const rushAlert = document.querySelector('#rush-alert');
+
+rushRate.addEventListener('change', () => { if (!rush.running) rushStatus.textContent = describeRate(); });
+
 rushStart.addEventListener('click', () => {
-  rushSent = 0;
+  if (rush.running) return;
+  if (pizzas.length === 0) {
+    rushStatus.textContent = 'Le menu n’est pas chargé : impossible de choisir les pizzas du rush.';
+    return;
+  }
+  Object.assign(rush, { running: true, sent: 0, pending: 0, ok: 0, fallback: 0, errors: 0, durations: [], orderIds: new Set(), sseIds: new Set() });
   rushStart.disabled = true;
+  rushRate.disabled = true;
   rushStop.disabled = false;
-  rushStatus.textContent = 'Rush en cours…';
-  const sendOrder = async () => {
-    const pizza = pizzas[rushSent % pizzas.length];
-    try {
-      const response = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pizzaId: pizza.id }) });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      rushSent += 1;
-      rushStatus.textContent = `${rushSent} commande${rushSent === 1 ? '' : 's'} envoyée${rushSent === 1 ? '' : 's'}`;
-    } catch (error) {
-      rushStatus.textContent = `Erreur pendant le rush : ${error.message}`;
-    }
-  };
-  sendOrder();
-  rushTimer = setInterval(sendOrder, Number(rushRate.value));
-});
-rushStop.addEventListener('click', () => {
-  clearInterval(rushTimer);
-  rushStart.disabled = false;
-  rushStop.disabled = true;
-  rushStatus.textContent += ' · Rush arrêté.';
+  rushStatus.textContent = `Rush en cours : ${describeRate()}.`;
+  sendRushOrder();
+  rush.timer = setInterval(sendRushOrder, Number(rushRate.value));
+  renderRush();
 });
 
-backpressureStart.addEventListener('click', async () => {
-  backpressureStart.disabled = true;
-  backpressureStatus.textContent = 'Expérience en cours…';
-  backpressureTrace.replaceChildren();
+rushStop.addEventListener('click', () => {
+  clearInterval(rush.timer);
+  rush.running = false;
+  rushStop.disabled = true;
+  renderRush();
+});
+
+async function sendRushOrder() {
+  if (!rush.running) return;
+  const pizza = pizzas[rush.sent % pizzas.length];
+  rush.sent += 1;
+  rush.pending += 1;
+  renderRush();
+  const startedAt = performance.now();
   try {
-    const response = await fetch('/api/orders/backpressure-demo', { method: 'POST' });
+    const response = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pizzaId: pizza.id }) });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const trace = await response.json();
-    backpressureTrace.innerHTML = `<ol>${trace.map(row => `<li>${row.elapsedMillis} ms · ${row.event}${row.item ? ` · élément ${row.item}` : ''}</li>`).join('')}</ol>`;
+    const order = await response.json();
+    rush.orderIds.add(order.id);
+    if (order.estimatedDeliveryMinutes) rush.ok += 1; else rush.fallback += 1;
+  } catch (error) {
+    rush.errors += 1;
+    console.warn('Commande du rush en erreur.', error);
+  } finally {
+    rush.durations.push(performance.now() - startedAt);
+    rush.pending -= 1;
+    renderRush();
+  }
+}
+
+function describeRate() {
+  const interval = Number(rushRate.value);
+  const perSecond = 1000 / interval;
+  return `${perSecond} commande${perSecond > 1 ? 's' : ''} par seconde, une toutes les ${interval} ms`;
+}
+
+function median(values) {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
+function formatDuration(ms) {
+  if (ms === null || ms === undefined) return '–';
+  return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} s`;
+}
+
+function renderRush() {
+  const { durations } = rush;
+  const sseCount = [...rush.orderIds].filter(id => rush.sseIds.has(id)).length;
+  rushFields.sent.textContent = rush.sent;
+  rushFields.pending.textContent = rush.pending;
+  rushFields.ok.textContent = rush.ok;
+  rushFields.fallback.textContent = rush.fallback;
+  rushFields.errors.textContent = rush.errors;
+  rushFields.sse.textContent = sseCount;
+  rushFields.median.textContent = formatDuration(median(durations));
+  rushFields.last.textContent = formatDuration(durations.at(-1));
+  rushFields.max.textContent = formatDuration(durations.length ? Math.max(...durations) : null);
+
+  if (!rush.running && rush.sent > 0) {
+    rushStatus.textContent = rush.pending > 0
+      ? `Envois arrêtés. ${rush.pending} requête${rush.pending > 1 ? 's' : ''} encore en cours, attendre leur réponse.`
+      : 'Envois arrêtés. Toutes les réponses sont reçues.';
+    if (rush.pending === 0) {
+      rushStart.disabled = false;
+      rushRate.disabled = false;
+    }
+  }
+
+  const alerts = [];
+  const perSecond = 1000 / Number(rushRate.value);
+  const firstMedian = median(durations.slice(0, 5));
+  const recentMedian = median(durations.slice(-5));
+  if (durations.length >= 10 && recentMedian > 2 * firstMedian && recentMedian > 200) {
+    alerts.push(`Retard qui augmente : médiane des 5 dernières réponses ${formatDuration(recentMedian)}, contre ${formatDuration(firstMedian)} au début.`);
+  }
+  if (rush.running && rush.pending > perSecond) {
+    alerts.push(`${rush.pending} requêtes attendent leur réponse : plus que la cadence d’envoi par seconde.`);
+  }
+  if (rush.fallback > 0) alerts.push(`${rush.fallback} commande${rush.fallback > 1 ? 's' : ''} sans estimation : le service Livraison n’a pas répondu à temps.`);
+  if (rush.errors > 0) alerts.push(`${rush.errors} requête${rush.errors > 1 ? 's' : ''} en erreur.`);
+  rushAlert.hidden = alerts.length === 0;
+  rushAlert.textContent = alerts.join(' ');
+}
+
+// Expérience 2 : Reactor isolé, sans commande ni MongoDB ni SSE.
+const bpFields = Object.fromEntries(['produced', 'processed', 'dropped'].map(name => [name, document.querySelector(`#bp-${name}`)]));
+const bpCheck = document.querySelector('#bp-check');
+
+backpressureStart.addEventListener('click', () => runReactorExperiment('/api/orders/backpressure-demo', 'Source contrôlée en cours…'));
+fastSourceStart.addEventListener('click', () => runReactorExperiment('/api/orders/backpressure-demo/fast-source', 'Source rapide en cours…'));
+
+async function runReactorExperiment(url, runningText) {
+  backpressureStart.disabled = true;
+  fastSourceStart.disabled = true;
+  backpressureStatus.textContent = runningText;
+  backpressureTrace.replaceChildren();
+  Object.values(bpFields).forEach(field => { field.textContent = '–'; });
+  bpCheck.textContent = '';
+  try {
+    const response = await fetch(url, { method: 'POST' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const report = await response.json();
+    bpFields.produced.textContent = report.produced;
+    bpFields.processed.textContent = report.processed;
+    bpFields.dropped.textContent = report.dropped;
+    const balanced = report.produced === report.processed + report.dropped;
+    bpCheck.className = balanced ? 'lab-status check-ok' : 'lab-status check-ko';
+    bpCheck.textContent = balanced
+      ? `Bilan vérifié : ${report.produced} produits = ${report.processed} traités + ${report.dropped} abandonnés.`
+      : `Bilan incohérent : écart de ${report.produced - report.processed - report.dropped} élément(s).`;
+    backpressureTrace.innerHTML = `<ol>${report.trace.map(row => `<li${row.event === 'ÉLÉMENT ABANDONNÉ' ? ' class="trace-dropped"' : ''}>${row.elapsedMillis} ms · ${row.event}${row.item ? ` · élément ${row.item}` : ''}</li>`).join('')}</ol>`;
     backpressureStatus.textContent = 'Expérience terminée.';
   } catch (error) {
     backpressureStatus.textContent = `Erreur : ${error.message}`;
   } finally {
     backpressureStart.disabled = false;
-  }
-});
-
-fastSourceStart.addEventListener('click', async () => {
-  fastSourceStart.disabled = true;
-  backpressureStatus.textContent = 'Source rapide en cours…';
-  backpressureTrace.replaceChildren();
-  try {
-    const response = await fetch('/api/orders/backpressure-demo/fast-source', { method: 'POST' });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const trace = await response.json();
-    backpressureTrace.innerHTML = `<ol>${trace.map(row => `<li>${row.elapsedMillis} ms · ${row.event}${row.item ? ` · élément ${row.item}` : ''}</li>`).join('')}</ol>`;
-    backpressureStatus.textContent = trace.at(-1)?.event ?? 'Expérience terminée.';
-  } catch (error) {
-    backpressureStatus.textContent = `Erreur : ${error.message}`;
-  } finally {
     fastSourceStart.disabled = false;
   }
-});
+}
 
 async function loadMenu() {
   try {
@@ -111,8 +196,13 @@ function listenForNewOrders() {
   const source = new EventSource('/api/orders/stream');
 
   source.addEventListener('order-created', (event) => {
-    addOrder(JSON.parse(event.data));
+    const order = JSON.parse(event.data);
+    addOrder(order);
     renderOrders();
+    if (rush.sent > 0) {
+      rush.sseIds.add(order.id);
+      renderRush();
+    }
   });
 
   source.onopen = () => console.info('Flux des nouvelles commandes connecté.');
