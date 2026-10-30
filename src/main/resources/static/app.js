@@ -8,6 +8,7 @@ const orders = [];
 let pizzas = [];
 
 loadMenu();
+loadOrders();
 
 async function loadMenu() {
   try {
@@ -21,6 +22,18 @@ async function loadMenu() {
   } catch (error) {
     menu.innerHTML = '<p role="alert">Le menu est indisponible. Vérifie que l’application est démarrée, puis recharge la page.</p>';
     console.error('Impossible de charger le menu des pizzas.', error);
+  }
+}
+
+async function loadOrders() {
+  try {
+    const response = await fetch('/api/orders');
+    if (!response.ok) throw new Error(`Erreur HTTP ${response.status}`);
+    orders.push(...await response.json());
+    orders.reverse();
+    renderOrders();
+  } catch (error) {
+    console.error('Impossible de charger les commandes.', error);
   }
 }
 
@@ -112,9 +125,9 @@ function renderOrders() {
     return;
   }
 
-  kitchen.innerHTML = `<div class="order-list">${orders.map(({ number, pizza, status, createdAt }) => `
+  kitchen.innerHTML = `<div class="order-list">${orders.map(({ id, pizza, status, createdAt }) => `
     <article class="order-card">
-      <div><strong>Commande #${number} · ${pizza.name}</strong><small>Reçue à ${new Date(createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} · ${money.format(pizza.price)}</small></div>
+      <div><strong>Commande #${id.slice(0, 8)} · ${pizza.name}</strong><small>Reçue à ${new Date(createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} · ${money.format(pizza.price)}</small></div>
       <span class="order-label">${status === 'RECEIVED' ? 'Reçue' : status}</span>
     </article>`).join('')}</div>`;
 }

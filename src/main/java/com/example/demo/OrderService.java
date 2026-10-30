@@ -19,4 +19,8 @@ public class OrderService {
                 .switchIfEmpty(Mono.error(new PizzaNotFoundException(pizzaId)))
                 .flatMap(pizza -> commandeRepository.save(Commande.create(pizza)));
     }
+
+    public reactor.core.publisher.Flux<Commande> findAll() {
+        return commandeRepository.findAll();
+    }
 }
